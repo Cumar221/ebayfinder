@@ -1,0 +1,70 @@
+version: '3'
+
+services:
+  db:
+    image: postgres
+  redis: 
+    image: redis:latest
+    container_name: redis
+    command: ["redis-server", "--appendonly", "yes"]
+    hostname: redis
+    ports: 
+      - '6379:6379'
+    expose:
+      - '6379'
+    sysctls:
+      net.core.somaxconn: 1024
+  channels:
+    build: .
+    command: bash -c "daphne -b 0.0.0.0 -p 8081 web.asgi:application"
+    volumes:
+      - .:/code
+    ports:
+      - '8081:8081'
+    links:
+      - redis
+    depends_on:
+      - db
+      - redis
+  celery:
+    build: .
+    command: celery -A web worker -l info
+    volumes:
+      - .:/code
+    depends_on:
+      - db
+      - redis
+  celery-beat:
+    build: .
+    command: celery -A web beat -l info --pidfile="/tmp/celerybeat.pid"
+    volumes:
+      - .:/code
+    depends_on:
+      - db
+      - redis
+  web:
+    build: .
+    container_name: dg01
+    command: bash -c "python manage.py makemigrations && python manage.py migrate && gunicorn web.wsgi -b 0.0.0.0:8080"
+    volumes:
+      - .:/code
+      - ./static:/static
+    depends_on:
+      - db
+      - redis
+    expose:
+      - "8080"
+  nginx:
+    image: nginx:latest
+    container_name: ng01
+    ports:
+      - "80:8090"
+    volumes:
+      - .:/code
+      - ./nginx:/etc/nginx/conf.d
+      - ./static:/static
+      - ./frontend/build:/code/www/frontend 
+    depends_on:
+      - web
+
+
