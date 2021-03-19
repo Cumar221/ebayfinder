@@ -17,7 +17,7 @@ constantly==15.1.0
 daphne==2.2.4
 Django==2.1.5
 django-cors-headers==2.4.0
-djangorestframework==3.9.0
+djangorestframework==3.11.2
 djangorestframework-jwt==1.11.0
 ebaysdk==2.1.5
 hiredis==1.0.0
